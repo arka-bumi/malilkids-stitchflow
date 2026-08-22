@@ -40,11 +40,13 @@ export default function FormRecord() {
   const [jumlahAktivitas, setJumlahAktivitas] = useState("");
   const [waktuMulai, setWaktuMulai] = useState(params.suggest_start || "");
   const [waktuSelesai, setWaktuSelesai] = useState("");
-  const [lainList, setLainList] = useState<{ nama: string; waktu_mulai: string; waktu_selesai: string }[]>([]);
+  const [lainList, setLainList] = useState<{ nama: string; customNama?: string; waktu_mulai: string; waktu_selesai: string }[]>([]);
 
   const kodeOptions = useMemo(() => master.kode_produksi.map((k: any) => k.kode).filter(Boolean), [master.kode_produksi]);
   const tahapanOptions = useMemo(() => (jenisProduk ? [...(master.tahapan_by_produk[jenisProduk] || []), LAINNYA] : []), [jenisProduk, master.tahapan_by_produk]);
   const isCustomTahapan = aktivitasUtama === LAINNYA;
+  // Coba tambah aktivitas lainnya di dropdown, tapi tetap bisa ketik manual. Jadi gabungan antara master list + custom input.
+  const lainOptions = useMemo(() => [...(master.aktivitas_lain || []), LAINNYA], [master.aktivitas_lain]);
 
   useFocusEffect(
     useCallback(() => {
@@ -101,8 +103,8 @@ export default function FormRecord() {
     }
   };
 
-  const addLain = () => setLainList([...lainList, { nama: "", waktu_mulai: waktuMulai || "", waktu_selesai: waktuSelesai || "" }]);
-  const updateLain = (idx: number, patch: Partial<{ nama: string; waktu_mulai: string; waktu_selesai: string }>) =>
+  const addLain = () => setLainList([...lainList, { nama: "", customNama: "", waktu_mulai: waktuMulai || "", waktu_selesai: waktuSelesai || "" }]);
+  const updateLain = (idx: number, patch: Partial<{ nama: string; customNama?: string; waktu_mulai: string; waktu_selesai: string }>) =>
     setLainList(lainList.map((l, i) => (i === idx ? { ...l, ...patch } : l)));
   const removeLain = (idx: number) => setLainList(lainList.filter((_, i) => i !== idx));
 
@@ -141,7 +143,11 @@ export default function FormRecord() {
         jumlah_per_aktivitas: jumlahAktivitas ? parseInt(jumlahAktivitas) : null,
         waktu_mulai: waktuMulai,
         waktu_selesai: waktuSelesai,
-        aktivitas_lain_list: lainList,
+        aktivitas_lain_list: lainList.map((l) => ({
+          nama: l.nama === LAINNYA ? (l.customNama || "").trim() : l.nama,
+          waktu_mulai: l.waktu_mulai,
+          waktu_selesai: l.waktu_selesai,
+        })),
       };
       if (editMode && params.edit_id) {
         await api.updateRecord(params.edit_id, payload);
@@ -234,22 +240,47 @@ export default function FormRecord() {
               </Pressable>
             </View>
             {lainList.length === 0 && <Text style={styles.hint}>Belum ada. Tekan Tambah untuk mencatat aktivitas lain yang berbarengan.</Text>}
-            {lainList.map((l, i) => (
-              <View key={i} style={styles.lainCard}>
-                <View style={styles.lainHead}>
+            {lainList.map((l, i) => {
+              const isItemCustom = l.nama === LAINNYA;
+
+              return (
+                <View key={i} style={styles.lainCard}>
+                 <View style={styles.lainHead}>
                   <Text style={styles.lainIdx}>#{i + 1}</Text>
                   <Pressable onPress={() => removeLain(i)} hitSlop={10} testID={`btn-rm-lain-${i}`}>
                     <Ionicons name="trash" size={18} color={colors.error} />
                   </Pressable>
-                </View>
-                <Dropdown label="Aktivitas" required value={l.nama} options={master.aktivitas_lain}
-                  onChange={(v) => updateLain(i, { nama: v })} testID={`dd-lain-${i}`} />
-                <View style={styles.row2}>
-                  <TimeField label="Mulai" required value={l.waktu_mulai} onChange={(v) => updateLain(i, { waktu_mulai: v })} testID={`time-lain-mulai-${i}`} />
-                  <TimeField label="Selesai" required value={l.waktu_selesai} onChange={(v) => updateLain(i, { waktu_selesai: v })} testID={`time-lain-selesai-${i}`} />
-                </View>
-              </View>
-            ))}
+               </View>
+              <Dropdown 
+                label="Aktivitas" 
+                required 
+                value={l.nama} 
+                options={lainOptions}
+                onChange={(v) => updateLain(i, { nama: v })} 
+                testID={`dd-lain-${i}`} 
+             />
+             {isItemCustom && (
+               <>
+                <Text style={styles.label}>Ketik Aktivitas Kustom *</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Contoh: Meeting, Rapat harian, dll"
+                  placeholderTextColor={colors.muted}
+                  value={l.customNama || ""}
+                  onChangeText={(txt) => updateLain(i, { customNama: txt })}
+                  autoCapitalize="sentences"
+                  testID={`input-custom-lain-${i}`}
+                />
+                <Text style={styles.hint}>Entri kustom tidak akan menambah dropdown master.</Text>
+              </>
+            )}
+            <View style={styles.row2}>
+              <TimeField label="Mulai" required value={l.waktu_mulai} onChange={(v) => updateLain(i, { waktu_mulai: v })} testID={`time-lain-mulai-${i}`} />
+              <TimeField label="Selesai" required value={l.waktu_selesai} onChange={(v) => updateLain(i, { waktu_selesai: v })} testID={`time-lain-selesai-${i}`} />
+            </View>
+          </View>
+        );
+      })}
           </View>
         </ScrollView>
 

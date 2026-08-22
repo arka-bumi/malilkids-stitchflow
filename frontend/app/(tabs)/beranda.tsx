@@ -247,7 +247,7 @@ function InspectionModal({ visible, data, onClose, shortShift }: any) {
   const items = [
     { ok: data.continuousCoverage, label: `Total coverage shift (${shortShift ? "08:00-15:00" : "08:15-17:15"})`, actual: data.continuousCoverage ? "Lengkap tanpa gap" : "Belum lengkap / ada gap" },
     { ok: data.gaps.length === 0, label: "Tidak ada gap antar record", actual: data.gaps.length ? `${data.gaps.length} gap` : "OK" },
-    { ok: !data.needsIstirahat, label: "Istirahat 1x sudah ada", actual: data.needsIstirahat ? "Belum" : (shortShift ? "Tidak wajib (shift pendek)" : "Sudah") },
+    { ok: !data.needsIstirahat, label: "Istirahat 1x sudah ada", actual: data.needsIstirahat ? "Belum" : "Sudah" },
     { ok: !data.outOfShift, label: "Terdapat record di luar jam reguler", actual: data.outOfShift ? "Ada (Pre-Shift / Lembur)" : "Tidak ada", info: true },
   ];
   const allOK = items.every((i) => i.ok || i.info);
